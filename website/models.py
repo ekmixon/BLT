@@ -98,22 +98,19 @@ class Domain(models.Model):
     def get_logo(self):
         if self.logo:
             return self.logo.url
-        image_request = requests.get("https://logo.clearbit.com/" + self.name)
+        image_request = requests.get(f"https://logo.clearbit.com/{self.name}")
         try:
             if image_request.status_code == 200:
                 image_content = ContentFile(image_request.content)
-                self.logo.save(self.name + ".jpg", image_content)
+                self.logo.save(f"{self.name}.jpg", image_content)
                 return self.logo.url
 
         except:
-            favicon_url = self.url + "/favicon.ico"
-            return favicon_url
+            return f"{self.url}/favicon.ico"
 
     @property
     def get_color(self):
-        if self.color:
-            return self.color
-        else:
+        if not self.color:
             if not self.logo:
                 self.get_logo()
             try:
@@ -122,7 +119,7 @@ class Domain(models.Model):
             except:
                 self.color = "#0000ff"
             self.save()
-            return self.color
+        return self.color
 
     @property
     def hostname_domain(self):
@@ -135,18 +132,18 @@ class Domain(models.Model):
         domain = parsed_url.hostname
         temp = domain.rsplit(".")
         if len(temp) == 3:
-            domain = temp[1] + "." + temp[2]
+            domain = f"{temp[1]}.{temp[2]}"
         return domain
 
     def get_absolute_url(self):
-        return "/domain/" + self.name
+        return f"/domain/{self.name}"
 
 
 def validate_image(fieldfile_obj):
     filesize = fieldfile_obj.file.size
     megabyte_limit = 3.0
     if filesize > megabyte_limit * 1024 * 1024:
-        raise ValidationError("Max file size is %sMB" % str(megabyte_limit))
+        raise ValidationError(f"Max file size is {megabyte_limit}MB")
 
 
 class Hunt(models.Model):
@@ -229,41 +226,44 @@ class Issue(models.Model):
         domain = parsed_url.hostname
         temp = domain.rsplit(".")
         if len(temp) == 3:
-            domain = temp[1] + "." + temp[2]
+            domain = f"{temp[1]}.{temp[2]}"
         return domain
 
     def get_twitter_message(self):
-        issue_link = " bugheist.com/issue/" + str(self.id)
+        issue_link = f" bugheist.com/issue/{str(self.id)}"
         prefix = "Bug found on @"
         spacer = " | "
-        msg = (
+        return (
             prefix
             + self.domain_title
             + spacer
             + self.description[
                 : 140
-                - (len(prefix) + len(self.domain_title) + len(spacer) + len(issue_link))
+                - (
+                    len(prefix)
+                    + len(self.domain_title)
+                    + len(spacer)
+                    + len(issue_link)
+                )
             ]
             + issue_link
         )
-        return msg
 
     def get_ocr(self):
         if self.ocr:
             return self.ocr
-        else:
-            try:
-                import pytesseract
+        try:
+            import pytesseract
 
-                self.ocr = pytesseract.image_to_string(Image.open(self.screenshot))
-                self.save()
-                return self.ocr
-            except:
-                return "OCR not installed"
+            self.ocr = pytesseract.image_to_string(Image.open(self.screenshot))
+            self.save()
+            return self.ocr
+        except:
+            return "OCR not installed"
 
     @property
     def get_absolute_url(self):
-        return "/issue/" + str(self.id)
+        return f"/issue/{str(self.id)}"
 
     class Meta:
         ordering = ["-created"]
@@ -307,10 +307,10 @@ def post_to_twitter(sender, instance, *args, **kwargs):
     except AttributeError:
         text = str(instance)
 
-    mesg = "%s" % (text)
+    mesg = f"{text}"
     if len(mesg) > TWITTER_MAXLENGTH:
-        size = len(mesg + "...") - TWITTER_MAXLENGTH
-        mesg = "%s..." % (text[:-size])
+        size = len(f"{mesg}...") - TWITTER_MAXLENGTH
+        mesg = f"{text[:-size]}..."
 
     import logging
 
@@ -329,7 +329,7 @@ def post_to_twitter(sender, instance, *args, **kwargs):
             api.update_status(**params)
 
         except Exception as ex:
-            logger.debug("rem %s" % str(ex))
+            logger.debug(f"rem {str(ex)}")
             return False
 
 

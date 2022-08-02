@@ -6,6 +6,7 @@ https://docs.djangoproject.com/en/1.8/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/1.8/ref/settings/
 """
+
 import os
 import sys
 
@@ -283,9 +284,7 @@ STATIC_URL = "/static/"
 # Extra places for collectstatic to find static files.
 STATICFILES_DIRS = (os.path.join(PROJECT_ROOT, "static"),)
 
-ABSOLUTE_URL_OVERRIDES = {
-    "auth.user": lambda u: "/profile/%s/" % u.username,
-}
+ABSOLUTE_URL_OVERRIDES = {"auth.user": lambda u: f"/profile/{u.username}/"}
 
 # Simplified static file serving.
 # https://warehouse.python.org/project/whitenoise/
@@ -318,7 +317,7 @@ AVATAR_PATH = os.path.join(MEDIA_ROOT, USERS_AVATAR_PATH)
 if not os.path.exists(AVATAR_PATH):
     os.makedirs(AVATAR_PATH)
 
-if DEBUG == False:
+if not DEBUG:
     CACHES = {"default": {
         "BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
 else:

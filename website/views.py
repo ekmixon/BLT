@@ -108,15 +108,15 @@ def index(request, template="index.html"):
     if request.user.is_authenticated:
         wallet, created = Wallet.objects.get_or_create(user=request.user)
     context = {
-        "activities": Issue.objects.all()[0:10],
+        "activities": Issue.objects.all()[:10],
         "domains": domains,
         "hunts": Hunt.objects.exclude(txn_id__isnull=True)[:4],
         "leaderboard": User.objects.filter(
             points__created__month=datetime.now().month,
             points__created__year=datetime.now().year,
         )
-                           .annotate(total_score=Sum("points__score"))
-                           .order_by("-total_score")[:10],
+        .annotate(total_score=Sum("points__score"))
+        .order_by("-total_score")[:10],
         "not_verified": show_message,
         "domain_admin": domain_admin,
         "bug_count": bug_count,
@@ -126,6 +126,7 @@ def index(request, template="index.html"):
         "domain_count": domain_count,
         "captcha_form": captcha_form,
     }
+
     return render(request, template, context)
 
 
@@ -221,9 +222,9 @@ def company_dashboard(request, template="index_company.html"):
             return HttpResponseRedirect("/")
         hunts = Hunt.objects.filter(
             is_published=True, domain=company_admin.domain)
-        upcoming_hunt = list()
-        ongoing_hunt = list()
-        previous_hunt = list()
+        upcoming_hunt = []
+        ongoing_hunt = []
+        previous_hunt = []
         for hunt in hunts:
             if ((hunt.starts_on - datetime.now(timezone.utc)).total_seconds()) > 0:
                 upcoming_hunt.append(hunt)
@@ -271,20 +272,21 @@ def admin_company_dashboard_detail(
 @login_required(login_url="/accounts/login")
 def admin_dashboard(request, template="admin_home.html"):
     user = request.user
-    if user.is_superuser:
-        if not user.is_active:
-            return HttpResponseRedirect("/")
-        return render(request, template)
-    else:
+    if not user.is_superuser:
         return redirect("/")
+    return (
+        render(request, template)
+        if user.is_active
+        else HttpResponseRedirect("/")
+    )
 
 
 @login_required(login_url="/accounts/login")
 def user_dashboard(request, template="index_user.html"):
     hunts = Hunt.objects.filter(is_published=True)
-    upcoming_hunt = list()
-    ongoing_hunt = list()
-    previous_hunt = list()
+    upcoming_hunt = []
+    ongoing_hunt = []
+    previous_hunt = []
     for hunt in hunts:
         if ((hunt.starts_on - datetime.now(timezone.utc)).total_seconds()) > 0:
             upcoming_hunt.append(hunt)
@@ -306,76 +308,73 @@ def find_key(request, token):
     for k, v in list(os.environ.items()):
         if v == token and k.startswith("ACME_TOKEN_"):
             n = k.replace("ACME_TOKEN_", "")
-            return HttpResponse(os.environ.get("ACME_KEY_%s" % n))
+            return HttpResponse(os.environ.get(f"ACME_KEY_{n}"))
     raise Http404("Token or key does not exist")
 
 
 @csrf_exempt
 def domain_check(request):
-    if request.method == "POST":
-        domain_url = request.POST.get("dom_url")
-        if "http://" not in domain_url:
-            if "https://" not in domain_url:
-                domain_url = "http://" + domain_url
+    if request.method != "POST":
+        return
+    domain_url = request.POST.get("dom_url")
+    if "http://" not in domain_url and "https://" not in domain_url:
+        domain_url = f"http://{domain_url}"
 
-        if Issue.objects.filter(url=domain_url).exists():
-            isu = Issue.objects.filter(url=domain_url)
-            if isu.count() > 1:
+    if Issue.objects.filter(url=domain_url).exists():
+        isu = Issue.objects.filter(url=domain_url)
+        if isu.count() > 1:
+            if "www." in domain_url:
                 str1 = "www."
-                if "www." in domain_url:
-                    k = domain_url.index(str1)
-                    k = k + 4
-                    t = k
-                    while k < len(domain_url):
-                        if domain_url[k] != "/":
-                            k = k + 1
-                        elif domain_url[k] == "/":
-                            break
+                k = domain_url.index(str1)
+                k = k + 4
+                t = k
+                while k < len(domain_url):
+                    if domain_url[k] != "/":
+                        k = k + 1
+                    else:
+                        break
 
-                elif "http://" in domain_url:
-                    k = 7
-                    t = k
-                    while k < len(domain_url):
-                        if domain_url[k] != "/":
-                            k = k + 1
-                        elif domain_url[k] == "/":
-                            break
+            elif "http://" in domain_url:
+                k = 7
+                t = k
+                while k < len(domain_url):
+                    if domain_url[k] != "/":
+                        k += 1
+                    else:
+                        break
 
-                elif "https://" in domain_url:
-                    k = 8
-                    t = k
-                    while k < len(domain_url):
-                        if domain_url[k] != "/":
-                            k = k + 1
-                        elif domain_url[k] == "/":
-                            break
-                else:
-                    return HttpResponse("Nothing passed")
-
-                url_parsed = domain_url[t:k]
-                data = {"number": 2, "domain": url_parsed}
-                return HttpResponse(json.dumps(data))
-
+            elif "https://" in domain_url:
+                k = 8
+                t = k
+                while k < len(domain_url):
+                    if domain_url[k] != "/":
+                        k += 1
+                    else:
+                        break
             else:
-                try:
-                    a = Issue.objects.get(url=domain_url)
-                except:
-                    a = None
-                data = {
-                    "number": 1,
-                    "id": a.id,
-                    "description": a.description,
-                    "date": a.created.day,
-                    "month": a.created.month,
-                    "year": a.created.year,
-                }
-                return HttpResponse(json.dumps(data))
+                return HttpResponse("Nothing passed")
 
+            url_parsed = domain_url[t:k]
+            data = {"number": 2, "domain": url_parsed}
         else:
+            try:
+                a = Issue.objects.get(url=domain_url)
+            except:
+                a = None
             data = {
-                "number": 3,
+                "number": 1,
+                "id": a.id,
+                "description": a.description,
+                "date": a.created.day,
+                "month": a.created.month,
+                "year": a.created.year,
             }
-            return HttpResponse(json.dumps(data))
+    else:
+        data = {
+            "number": 3,
+        }
+
+    return HttpResponse(json.dumps(data))
 
 
 class IssueBaseCreate(object):
@@ -406,13 +405,13 @@ class IssueBaseCreate(object):
 
     def process_issue(self, user, obj, created, domain, tokenauth=False, score=3):
         p = Points.objects.create(user=user, issue=obj, score=score)
-        messages.success(self.request, "Bug added! +" + str(score))
+        messages.success(self.request, f"Bug added! +{str(score)}")
 
         if created:
             try:
                 email_to = get_email_from_domain(domain)
             except:
-                email_to = "support@" + domain.name
+                email_to = f"support@{domain.name}"
 
             domain.email = email_to
             domain.save()
@@ -427,18 +426,19 @@ class IssueBaseCreate(object):
             )
 
             send_mail(
-                domain.name + " added to Bugheist",
+                f"{domain.name} added to Bugheist",
                 msg_plain,
                 "Bugheist <support@bugheist.com>",
                 [email_to],
                 html_message=msg_html,
             )
+
         else:
             email_to = domain.email
             try:
                 name = email_to.split("@")[0]
             except:
-                email_to = "support@" + domain.name
+                email_to = f"support@{domain.name}"
                 name = "support"
                 domain.email = email_to
                 domain.save()
@@ -489,12 +489,13 @@ class IssueBaseCreate(object):
                     },
                 )
             send_mail(
-                "Bug found on " + domain.name,
+                f"Bug found on {domain.name}",
                 msg_plain,
                 "Bugheist <support@bugheist.com>",
                 [email_to],
                 html_message=msg_html,
             )
+
 
         return HttpResponseRedirect("/")
 
@@ -515,46 +516,44 @@ class IssueCreate(IssueBaseCreate, CreateView):
             self.request.POST["label"] = json_data["label"]
             self.request.POST["token"] = json_data["token"]
             self.request.POST["type"] = json_data["type"]
-            if self.request.POST.get("file"):
-                if isinstance(self.request.POST.get("file"), six.string_types):
-                    import imghdr
+            if self.request.POST.get("file") and isinstance(
+                self.request.POST.get("file"), six.string_types
+            ):
+                import imghdr
 
-                    # Check if the base64 string is in the "data:" format
-                    data = (
-                            "data:image/"
-                            + self.request.POST.get("type")
-                            + ";base64,"
-                            + self.request.POST.get("file")
-                    )
-                    data = data.replace(" ", "")
-                    data += "=" * ((4 - len(data) % 4) % 4)
-                    if "data:" in data and ";base64," in data:
-                        # Break out the header from the base64 content
-                        header, data = data.split(";base64,")
+                # Check if the base64 string is in the "data:" format
+                data = (
+                        "data:image/"
+                        + self.request.POST.get("type")
+                        + ";base64,"
+                        + self.request.POST.get("file")
+                )
+                data = data.replace(" ", "")
+                data += "=" * ((4 - len(data) % 4) % 4)
+                if "data:" in data and ";base64," in data:
+                    # Break out the header from the base64 content
+                    header, data = data.split(";base64,")
 
-                    # Try to decode the file. Return validation error if it fails.
-                    try:
-                        decoded_file = base64.b64decode(data)
-                    except TypeError:
-                        TypeError("invalid_image")
+                # Try to decode the file. Return validation error if it fails.
+                try:
+                    decoded_file = base64.b64decode(data)
+                except TypeError:
+                    TypeError("invalid_image")
 
-                    # Generate file name:
-                    file_name = str(uuid.uuid4())[
-                                :12
-                                ]  # 12 characters are more than enough.
-                    # Get the file name extension:
-                    extension = imghdr.what(file_name, decoded_file)
-                    extension = "jpg" if extension == "jpeg" else extension
-                    file_extension = extension
+                # Generate file name:
+                file_name = str(uuid.uuid4())[
+                            :12
+                            ]  # 12 characters are more than enough.
+                # Get the file name extension:
+                extension = imghdr.what(file_name, decoded_file)
+                extension = "jpg" if extension == "jpeg" else extension
+                file_extension = extension
 
-                    complete_file_name = "%s.%s" % (
-                        file_name,
-                        file_extension,
-                    )
+                complete_file_name = f"{file_name}.{file_extension}"
 
-                    self.request.FILES["screenshot"] = ContentFile(
-                        decoded_file, name=complete_file_name
-                    )
+                self.request.FILES["screenshot"] = ContentFile(
+                    decoded_file, name=complete_file_name
+                )
         except:
             tokenauth = False
         initial = super(IssueCreate, self).get_initial()
@@ -641,8 +640,7 @@ class IssueCreate(IssueBaseCreate, CreateView):
             )
             p = parse(github_url)
 
-            url = "https://api.github.com/repos/%s/%s/issues" % (
-                p.owner, p.repo)
+            url = f"https://api.github.com/repos/{p.owner}/{p.repo}/issues"
 
             issue = {
                 "title": obj.description,
@@ -663,14 +661,14 @@ class IssueCreate(IssueBaseCreate, CreateView):
             obj.github_url = response["html_url"]
             obj.save()
 
-        redirect_url = "/report"
-
         if not (self.request.user.is_authenticated or tokenauth):
             self.request.session["issue"] = obj.id
             self.request.session["created"] = created
             self.request.session["domain"] = domain.id
             login_url = reverse("account_login")
-            return HttpResponseRedirect("{}?next={}".format(login_url, redirect_url))
+            redirect_url = "/report"
+
+            return HttpResponseRedirect(f"{login_url}?next={redirect_url}")
 
         if tokenauth:
             self.process_issue(
@@ -683,7 +681,7 @@ class IssueCreate(IssueBaseCreate, CreateView):
 
     def get_context_data(self, **kwargs):
         context = super(IssueCreate, self).get_context_data(**kwargs)
-        context["activities"] = Issue.objects.all()[0:10]
+        context["activities"] = Issue.objects.all()[:10]
         context["captcha_form"] = CaptchaForm()
         if self.request.user.is_authenticated:
             context["wallet"] = Wallet.objects.get(user=self.request.user)
@@ -725,8 +723,7 @@ class InviteCreate(TemplateView):
         if email:
             domain = email.split("@")[-1]
             try:
-                ret = urllib.request.urlopen(
-                    "http://" + domain + "/favicon.ico")
+                ret = urllib.request.urlopen(f"http://{domain}/favicon.ico")
                 if ret.code == 200:
                     exists = "exists"
             except:
@@ -741,7 +738,7 @@ class InviteCreate(TemplateView):
 
 def profile(request):
     try:
-        return redirect("/profile/" + request.user.username)
+        return redirect(f"/profile/{request.user.username}")
     except Exception:
         return redirect("/")
 

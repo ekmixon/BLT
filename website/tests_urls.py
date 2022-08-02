@@ -53,7 +53,7 @@ class UrlsTest(test.TestCase):
 
                     skip = True
                     name = ""
-                fullname = (prefix + ":" + name) if prefix else name
+                fullname = f"{prefix}:{name}" if prefix else name
 
                 if not skip:
                     url = reverse(fullname, kwargs=params)
@@ -75,11 +75,7 @@ class UrlsTest(test.TestCase):
                         response = self.client.get(url)
                         self.assertIn(response.status_code, allowed_http_codes)
 
-                        status = (
-                            ""
-                            if response.status_code == 200
-                            else str(response.status_code) + " "
-                        )
+                        status = "" if response.status_code == 200 else f"{str(response.status_code)} "
                         print((status + url))
                         if url == logout_url and credentials:
 

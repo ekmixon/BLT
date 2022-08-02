@@ -29,16 +29,18 @@ def add_comment(request):
         new_msg = ''
         for item in temp_text:
             msg = item
-            if item[0] == "@":
-                if User.objects.filter(username=item[1:]).exists():
-                    user = User.objects.get(username=item[1:])
-                    user_list.append(user)
-                    msg = user.username
-                    item = "<a href='/profile/{0}'>@{1}</a>".format(
-                        item[1:], item[1:])
+            if (
+                item[0] == "@"
+                and User.objects.filter(username=item[1:]).exists()
+            ):
+                user = User.objects.get(username=item[1:])
+                user_list.append(user)
+                msg = user.username
+                item = "<a href='/profile/{0}'>@{1}</a>".format(
+                    item[1:], item[1:])
 
-            new_text = new_text + " " + item
-            new_msg = new_msg + " " + msg
+            new_text = f"{new_text} {item}"
+            new_msg = f"{new_msg} {msg}"
 
         for obj in user_list:
             msg_plain = render_to_string(
@@ -127,8 +129,6 @@ def autocomplete(request):
 
     q_s = q_s[1:]
     search_qs = User.objects.filter(username__startswith=q_s)
-    results = []
-    for r in search_qs:
-        results.append(r.username)
+    results = [r.username for r in search_qs]
     resp = request.GET['callback'] + '(' + json.dumps(results) + ');'
     return HttpResponse(resp, content_type='application/json')

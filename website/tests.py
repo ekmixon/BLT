@@ -26,7 +26,7 @@ class MySeleniumTests(LiveServerTestCase):
 
     @override_settings(DEBUG=True)
     def test_signup(self):
-        self.selenium.get('%s%s' % (self.live_server_url, '/accounts/signup/'))
+        self.selenium.get(f'{self.live_server_url}/accounts/signup/')
         self.selenium.find_element_by_name("username").send_keys('bugbugbug')
         self.selenium.find_element_by_name("email").send_keys('bugbugbug@bugbug.com')
         self.selenium.find_element_by_name("password1").send_keys('6:}jga,6mRKNUqMQ')
@@ -38,7 +38,7 @@ class MySeleniumTests(LiveServerTestCase):
 
     @override_settings(DEBUG=True)
     def test_login(self):
-        self.selenium.get('%s%s' % (self.live_server_url, '/accounts/login/'))
+        self.selenium.get(f'{self.live_server_url}/accounts/login/')
         self.selenium.find_element_by_name("login").send_keys('bugbug')
         self.selenium.find_element_by_name("password").send_keys('secret')
         self.selenium.find_element_by_name("login_button").click()
@@ -49,18 +49,18 @@ class MySeleniumTests(LiveServerTestCase):
     @override_settings(DEBUG=True)
     def test_post_bug(self):
         self.selenium.set_page_load_timeout(70)
-        self.selenium.get('%s%s' % (self.live_server_url, '/accounts/login/'))
+        self.selenium.get(f'{self.live_server_url}/accounts/login/')
         self.selenium.find_element_by_name("login").send_keys('bugbug')
         self.selenium.find_element_by_name("password").send_keys('secret')
         self.selenium.find_element_by_name("login_button").click()
         time.sleep(8)
-        self.selenium.get('%s%s' % (self.live_server_url, '/report/'))
+        self.selenium.get(f'{self.live_server_url}/report/')
         self.selenium.find_element_by_name("url").send_keys('http://www.example.com/')
         self.selenium.find_element_by_id("description").send_keys('Description of bug')
         Imagepath = os.path.abspath(os.path.join(os.getcwd(), 'website/static/img/logo.jpg'))
         self.selenium.find_element_by_name("screenshot").send_keys(Imagepath)
         self.selenium.find_element_by_name("reportbug_button").click()
         time.sleep(3)
-        self.selenium.get('%s%s' % (self.live_server_url, '/'))
+        self.selenium.get(f'{self.live_server_url}/')
         body = self.selenium.find_element_by_tag_name('body')
         self.assertIn('Description of bug', body.text)

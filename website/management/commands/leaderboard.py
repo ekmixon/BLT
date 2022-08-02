@@ -24,4 +24,4 @@ class Command(BaseCommand):
 
             user_prof.save()
 
-        return str("All users updated.")
+        return "All users updated."

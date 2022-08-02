@@ -84,60 +84,54 @@ schema_view = get_schema_view(
 )
 
 urlpatterns = [
+    path("captcha/", include("captcha.urls")),
+    url(r'^auth/registration/', include('dj_rest_auth.registration.urls')),
+    url(r'^auth/', include('dj_rest_auth.urls')),
+    url('auth/facebook', FacebookLogin.as_view(), name='facebook_login'),
+    path('auth/github/', GithubLogin.as_view(), name='github_login'),
+    path('auth/google/', GoogleLogin.as_view(), name='google_login'),
     path(
-        "captcha/", include("captcha.urls")
+        'accounts/github/login/callback/',
+        github_callback,
+        name='github_callback',
+    ),
+    path(
+        'accounts/google/login/callback/',
+        google_callback,
+        name='google_callback',
+    ),
+    path(
+        'accounts/facebook/login/callback/',
+        facebook_callback,
+        name='facebook_callback',
     ),
     url(
-        r'^auth/registration/', include('dj_rest_auth.registration.urls')
+        r'^auth/facebook/connect/$',
+        FacebookConnect.as_view(),
+        name='facebook_connect',
     ),
     url(
-        r'^auth/', include('dj_rest_auth.urls')
+        r'^auth/github/connect/$',
+        GithubConnect.as_view(),
+        name='github_connect',
     ),
     url(
-        'auth/facebook', FacebookLogin.as_view(), name='facebook_login'
+        r'^auth/google/connect/$',
+        GoogleConnect.as_view(),
+        name='google_connect',
     ),
-    path(
-        'auth/github/', GithubLogin.as_view(), name='github_login'
-    ),
-    path(
-        'auth/google/', GoogleLogin.as_view(), name='google_login'
-    ),
-    path(
-        'accounts/github/login/callback/', github_callback, name='github_callback'
-    ),
-    path(
-        'accounts/google/login/callback/', google_callback, name='google_callback'
-    ),
-    path(
-        'accounts/facebook/login/callback/', facebook_callback, name='facebook_callback'
-    ),
-    url(
-        r'^auth/facebook/connect/$', FacebookConnect.as_view(), name='facebook_connect'
-    ),
-    url(
-        r'^auth/github/connect/$', GithubConnect.as_view(), name='github_connect'
-    ),
-    url(
-        r'^auth/google/connect/$', GoogleConnect.as_view(), name='google_connect'
-    ),
-    path(
-        'auth/github/url/', github_views.oauth2_login
-    ),
-    path(
-        'auth/google/url/', google_views.oauth2_login
-    ),
-    path(
-        'auth/facebook/url/', facebook_views.oauth2_callback
-    ),
+    path('auth/github/url/', github_views.oauth2_login),
+    path('auth/google/url/', google_views.oauth2_login),
+    path('auth/facebook/url/', facebook_views.oauth2_callback),
     path(
         'socialaccounts/',
         SocialAccountListView.as_view(),
-        name='social_account_list'
+        name='social_account_list',
     ),
     path(
         'socialaccounts/<int:pk>/disconnect/',
         SocialAccountDisconnectView.as_view(),
-        name='social_account_disconnect'
+        name='social_account_disconnect',
     ),
     url(
         r"^swagger(?P<format>\.json|\.yaml)$",
@@ -150,7 +144,9 @@ urlpatterns = [
         name="schema-swagger-ui",
     ),
     url(
-        r"^redoc/$", schema_view.with_ui("redoc", cache_timeout=0), name="schema-redoc"
+        r"^redoc/$",
+        schema_view.with_ui("redoc", cache_timeout=0),
+        name="schema-redoc",
     ),
     url(r"^$", website.views.index, name="index"),
     url(
@@ -163,13 +159,21 @@ urlpatterns = [
         website.views.addbalance,
         name="addbalance",
     ),
-    url(r"^dashboard/user/profile/withdraw$", website.views.withdraw, name="withdraw"),
+    url(
+        r"^dashboard/user/profile/withdraw$",
+        website.views.withdraw,
+        name="withdraw",
+    ),
     url(
         r"^dashboard/user/stripe/connected/(?P<username>[^/]+)/$",
         website.views.stripe_connected,
         name="stripe_connected",
     ),
-    url(r"^dashboard/admin$", website.views.admin_dashboard, name="admin_dashboard"),
+    url(
+        r"^dashboard/admin$",
+        website.views.admin_dashboard,
+        name="admin_dashboard",
+    ),
     url(
         r"^dashboard/admin/company$",
         website.views.admin_company_dashboard,
@@ -195,7 +199,11 @@ urlpatterns = [
         website.views.company_dashboard_hunt_detail,
         name="company_dashboard_hunt_detail",
     ),
-    path("dashboard/user/hunt/<int:pk>/", website.views.view_hunt, name="view_hunt"),
+    path(
+        "dashboard/user/hunt/<int:pk>/",
+        website.views.view_hunt,
+        name="view_hunt",
+    ),
     path(
         "dashboard/user/hunt/<int:pk>/submittion/",
         website.views.submit_bug,
@@ -216,8 +224,16 @@ urlpatterns = [
         website.views.admin_company_dashboard_detail,
         name="admin_company_dashboard_detail",
     ),
-    url(r"^dashboard/company/hunt/create$", CreateHunt.as_view(), name="create_hunt"),
-    url(r"^dashboard/company/hunt/drafts$", DraftHunts.as_view(), name="draft_hunts"),
+    url(
+        r"^dashboard/company/hunt/create$",
+        CreateHunt.as_view(),
+        name="create_hunt",
+    ),
+    url(
+        r"^dashboard/company/hunt/drafts$",
+        DraftHunts.as_view(),
+        name="draft_hunts",
+    ),
     url(
         r"^dashboard/company/hunt/upcoming$",
         UpcomingHunts.as_view(),
@@ -238,7 +254,11 @@ urlpatterns = [
         OngoingHunts.as_view(),
         name="ongoing_hunts",
     ),
-    url(r"^dashboard/company/domains$", DomainList.as_view(), name="domain_list"),
+    url(
+        r"^dashboard/company/domains$",
+        DomainList.as_view(),
+        name="domain_list",
+    ),
     url(
         r"^dashboard/company/settings$",
         CompanySettings.as_view(),
@@ -261,12 +281,16 @@ urlpatterns = [
         UserProfileDetailsView.as_view(),
         name="user_profile",
     ),
-    path(settings.ADMIN_URL + "/", admin.site.urls),
+    path(f"{settings.ADMIN_URL}/", admin.site.urls),
     url(
-        r"^like_issue/(?P<issue_pk>\d+)/$", website.views.like_issue, name="like_issue"
+        r"^like_issue/(?P<issue_pk>\d+)/$",
+        website.views.like_issue,
+        name="like_issue",
     ),
     url(
-        r"^save_issue/(?P<issue_pk>\d+)/$", website.views.save_issue, name="save_issue"
+        r"^save_issue/(?P<issue_pk>\d+)/$",
+        website.views.save_issue,
+        name="save_issue",
     ),
     url(
         r"^unsave_issue/(?P<issue_pk>\d+)/$",
@@ -276,9 +300,15 @@ urlpatterns = [
     url(r"^issue/edit/$", website.views.IssueEdit),
     url(r"^issue/update/$", website.views.UpdateIssue),
     url(r"^issue/(?P<slug>\w+)/$", IssueView.as_view(), name="issue_view"),
-    url(r"^follow/(?P<user>[^/]+)/", website.views.follow_user, name="follow_user"),
+    url(
+        r"^follow/(?P<user>[^/]+)/",
+        website.views.follow_user,
+        name="follow_user",
+    ),
     url(r"^all_activity/$", AllIssuesView.as_view(), name="all_activity"),
-    url(r"^label_activity/$", SpecificIssuesView.as_view(), name="all_activity"),
+    url(
+        r"^label_activity/$", SpecificIssuesView.as_view(), name="all_activity"
+    ),
     url(r"^leaderboard/$", LeaderboardView.as_view(), name="leaderboard"),
     url(r"^scoreboard/$", ScoreboardView.as_view(), name="scoreboard"),
     url(r"^issue/$", IssueCreate.as_view(), name="issue"),
@@ -287,8 +317,14 @@ urlpatterns = [
         UploadCreate.as_view(),
         name="upload",
     ),
-    url(r"^profile/(?P<slug>[^/]+)/$", UserProfileDetailView.as_view(), name="profile"),
-    url(r"^domain/(?P<slug>[^/]+)/$", DomainDetailView.as_view(), name="domain"),
+    url(
+        r"^profile/(?P<slug>[^/]+)/$",
+        UserProfileDetailView.as_view(),
+        name="profile",
+    ),
+    url(
+        r"^domain/(?P<slug>[^/]+)/$", DomainDetailView.as_view(), name="domain"
+    ),
     url(
         r"^.well-known/acme-challenge/(?P<token>[^/]+)/$",
         website.views.find_key,
@@ -307,7 +343,9 @@ urlpatterns = [
     ),
     url(r"^terms/$", TemplateView.as_view(template_name="terms.html")),
     url(r"^about/$", TemplateView.as_view(template_name="about.html")),
-    url(r"^privacypolicy/$", TemplateView.as_view(template_name="privacy.html")),
+    url(
+        r"^privacypolicy/$", TemplateView.as_view(template_name="privacy.html")
+    ),
     url(r"^stats/$", StatsDetailView.as_view()),
     url(r"^favicon\.ico$", favicon_view),
     url(
@@ -315,11 +353,19 @@ urlpatterns = [
         csrf_exempt(InboundParseWebhookView.as_view()),
         name="inbound_event_webhook_callback",
     ),
-    url(r"^issue/comment/add/$", comments.views.add_comment, name="add_comment"),
     url(
-        r"^issue/comment/delete/$", comments.views.delete_comment, name="delete_comment"
+        r"^issue/comment/add/$", comments.views.add_comment, name="add_comment"
     ),
-    url(r"^comment/autocomplete/$", comments.views.autocomplete, name="autocomplete"),
+    url(
+        r"^issue/comment/delete/$",
+        comments.views.delete_comment,
+        name="delete_comment",
+    ),
+    url(
+        r"^comment/autocomplete/$",
+        comments.views.autocomplete,
+        name="autocomplete",
+    ),
     url(
         r"^issue/(?P<pk>\d+)/comment/edit/$",
         comments.views.edit_comment,
@@ -346,12 +392,24 @@ urlpatterns = [
         name="issuecreate",
     ),
     url(r"^api/v1/search/$", csrf_exempt(website.views.search_issues)),
-    url(r"^api/v1/delete_issue/(?P<id>\w+)/$", csrf_exempt(website.views.delete_issue)),
+    url(
+        r"^api/v1/delete_issue/(?P<id>\w+)/$",
+        csrf_exempt(website.views.delete_issue),
+    ),
     url(r"^api/v1/issue/update/$", csrf_exempt(website.views.UpdateIssue)),
     url(r"^api/v1/scoreboard/$", website.views.get_scoreboard),
-    url(r"^api/v1/terms/$", csrf_exempt(TemplateView.as_view(template_name="mobile_terms.html"))),
-    url(r"^api/v1/about/$", csrf_exempt(TemplateView.as_view(template_name="mobile_about.html"))),
-    url(r"^api/v1/privacypolicy/$", csrf_exempt(TemplateView.as_view(template_name="mobile_privacy.html"))),
+    url(
+        r"^api/v1/terms/$",
+        csrf_exempt(TemplateView.as_view(template_name="mobile_terms.html")),
+    ),
+    url(
+        r"^api/v1/about/$",
+        csrf_exempt(TemplateView.as_view(template_name="mobile_about.html")),
+    ),
+    url(
+        r"^api/v1/privacypolicy/$",
+        csrf_exempt(TemplateView.as_view(template_name="mobile_privacy.html")),
+    ),
     url(r"^error/", website.views.throw_error, name="post_error"),
     url(r"^tz_detect/", include("tz_detect.urls")),
     url(r"^tellme/", include("tellme.urls")),
@@ -359,6 +417,7 @@ urlpatterns = [
     path("robots.txt", website.views.robots_txt),
     path("ads.txt", website.views.ads_txt),
 ]
+
 
 if settings.DEBUG:
     import debug_toolbar

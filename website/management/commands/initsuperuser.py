@@ -10,7 +10,7 @@ class Command(BaseCommand):
             USERNAME = user[0]
             EMAIL = user[1]
             PASSWORD = user[2]
-            print("Creating superuser for %s (%s)" % (USERNAME, EMAIL))
+            print(f"Creating superuser for {USERNAME} ({EMAIL})")
             superuser = User.objects.create_superuser(
                 username=USERNAME,
                 email=EMAIL,
